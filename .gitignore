@@ -1,7 +1,26 @@
 # Logs
 logs/
 *.log 
-# 忽略models_cache
-models_cache/
+
+
 # 忽略data
 data/
+
+# 忽略所有文件夹的__pycache__ 
+**/__pycache__/
+
+# 忽略所有文件夹包括子文件夹下的.DS_Store
+**/.DS_Store
+
+
+# 忽略所有文件夹的.idea
+.idea/
+
+# 忽略所有文件夹的.vscode
+.vscode/
+
+
+
+# 忽略所有的model.safetensors
+**/*.safetensors
+
