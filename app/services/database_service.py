@@ -15,42 +15,43 @@ class DatabaseService:
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         
-    def get_user_behavior(self, user_id, limit=100):
+    def get_user_behavior(self, user_id: str, limit: int = 100) -> list:
         """获取用户行为数据
         
         Args:
-            user_id: 用户ID
-            limit: 返回的最大行为记录数
+            user_id (str): 用户ID
+            limit (int, optional): 返回的记录数量限制. 默认为 100.
+            
+        Returns:
+            list: 用户行为记录列表
         """
         try:
-            # 获取用户最近的行为记录
             behaviors = self.session.query(UserBehavior)\
                 .filter_by(user_id=user_id)\
                 .order_by(desc(UserBehavior.timestamp))\
                 .limit(limit)\
                 .all()
-                
-            if not behaviors:
-                return None
-                
-            # 转换为用户历史记录格式
-            return UserBehavior.get_user_history(behaviors)
-            
+            return [behavior.to_dict() for behavior in behaviors]
         except Exception as e:
             logger.error(f"Error getting user behavior: {str(e)}")
-            return None
+            return []
             
-    def add_user_behavior(self, user_id, item_id, action, description=None, source=None):
+    def add_user_behavior(self, user_id: str, item_id: str, action: str,
+                         description: str = None, source: str = None) -> dict:
         """添加用户行为记录
         
         Args:
-            user_id: 用户ID
-            item_id: 内容ID
-            action: 行为类型（如：view, like, share等）
-            description: 行为描述
-            source: 行为来源
+            user_id (str): 用户ID
+            item_id (str): 内容ID
+            action (str): 行为类型
+            description (str, optional): 行为描述
+            source (str, optional): 行为来源
+            
+        Returns:
+            dict: 新增的行为记录
         """
         try:
+            # 创建新的行为记录
             behavior = UserBehavior(
                 user_id=user_id,
                 item_id=item_id,
@@ -60,8 +61,10 @@ class DatabaseService:
                 source=source
             )
             
+            # 添加到数据库
             self.session.add(behavior)
             self.session.commit()
+            
             return behavior.to_dict()
             
         except Exception as e:
@@ -69,24 +72,28 @@ class DatabaseService:
             self.session.rollback()
             return None
             
-    def get_user_actions(self, user_id, action_type=None, start_time=None, end_time=None):
-        """获取用户特定类型的行为记录
+    def get_user_actions(self, user_id: str, start_time: datetime = None,
+                        end_time: datetime = None, action_type: str = None) -> list:
+        """获取用户特定时间段的行为
         
         Args:
-            user_id: 用户ID
-            action_type: 行为类型（如：view, like, share等）
-            start_time: 开始时间
-            end_time: 结束时间
+            user_id (str): 用户ID
+            start_time (datetime, optional): 开始时间
+            end_time (datetime, optional): 结束时间
+            action_type (str, optional): 行为类型
+            
+        Returns:
+            list: 行为记录列表
         """
         try:
             query = self.session.query(UserBehavior).filter_by(user_id=user_id)
             
-            if action_type:
-                query = query.filter_by(action=action_type)
             if start_time:
                 query = query.filter(UserBehavior.timestamp >= start_time)
             if end_time:
                 query = query.filter(UserBehavior.timestamp <= end_time)
+            if action_type:
+                query = query.filter_by(action=action_type)
                 
             behaviors = query.order_by(desc(UserBehavior.timestamp)).all()
             return [behavior.to_dict() for behavior in behaviors]
@@ -95,23 +102,6 @@ class DatabaseService:
             logger.error(f"Error getting user actions: {str(e)}")
             return []
             
-    def get_item_interactions(self, item_id):
-        """获取内容的交互记录
-        
-        Args:
-            item_id: 内容ID
-        """
-        try:
-            behaviors = self.session.query(UserBehavior)\
-                .filter_by(item_id=item_id)\
-                .order_by(desc(UserBehavior.timestamp))\
-                .all()
-            return [behavior.to_dict() for behavior in behaviors]
-            
-        except Exception as e:
-            logger.error(f"Error getting item interactions: {str(e)}")
-            return []
-    
     def close(self):
         """关闭数据库连接"""
-        self.session.close() 
+        self.session.close()

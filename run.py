@@ -41,4 +41,4 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     logger.info("Starting recommendation system...")
-    app.run(debug=True, port=8888)
+    app.run(debug=True, port=8888,host='0.0.0.0')
